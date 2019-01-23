@@ -2,7 +2,7 @@
 
 随着应用程序逐步向动态架构迁移，服务的扩展和服务间通信的管理变得越来越具有挑战性。Consul 的服务发现功能提供了应用之间的动态连接。Consul 还可以监控节点健康状态并确保只有健康的服务被发现使用。Consul 构建的运行时配置允许通过全局设施进行更新。
 
-本文档提供了一套建议实现和参考架构，包括 Consul 生产环境不熟的系统要求、数据中心设计、网络和性能优化。
+本文档提供了一套建议实现和参考架构，包括 Consul 生产环境部署的系统要求、数据中心设计、网络和性能优化。
 
 ### 架构依赖 <a id="infrastructure-requirements"></a>
 
@@ -15,18 +15,18 @@ Consul server agent 负责维护集群状态、响应 RPC 查询（读取）以�
 | 类型 | CPU | 内存 | 磁盘 | 典型云示例 |
 | :--- | :--- | :--- | :--- | :--- |
 | 小型 | 2 core | 8-16 GB RAM | 50GB | **AWS**: m5.large, m5.xlarge |
-|  |  |  |  | **Azure**: Standard\_A4\_v2, Standard\_A8\_v2 |
-|  |  |  |  | **GCE**: n1-standard-8, n1-standard-16 |
+| ​ | ​ | ​ | ​ | **Azure**: Standard\_A4\_v2, Standard\_A8\_v2 |
+| ​ | ​ | ​ | ​ | **GCE**: n1-standard-8, n1-standard-16 |
 | 大型 | 4-8 core | 32-64 GB RAM | 100GB | **AWS**: m5.2xlarge, m5.4xlarge |
-|  |  |  |  | **Azure**: Standard\_D4\_v3, Standard\_D5\_v3 |
-|  |  |  |  | **GCE**: n1-standard-32, n1-standard-64 |
+| ​ | ​ | ​ | ​ | **Azure**: Standard\_D4\_v3, Standard\_D5\_v3 |
+| ​ | ​ | ​ | ​ | **GCE**: n1-standard-32, n1-standard-64 |
 
 **硬件性能考虑**
 
 * 小型服务器用于大多数刚起步的生产环境部署和开发、测试环境。
 * 大型服务器用于工作负载持续较高的生产环境。
 
-{% hint style="info" %}
+{% hint style="warning" %}
 **注意** 对于大型负载，还要确保磁盘的 IOPS 水平跟得上日志更新速度。
 {% endhint %}
 
@@ -34,7 +34,9 @@ Consul server agent 负责维护集群状态、响应 RPC 查询（读取）以�
 
 ### 架构图 <a id="infrastructure-diagram"></a>
 
-![&#x53C2;&#x8003;&#x67B6;&#x6784;&#x56FE;](https://learn.hashicorp.com/assets/images/consul-arch.png)
+​
+
+![](https://learn.hashicorp.com/assets/images/consul-arch.png)
 
 ### 数据中心设计 <a id="datacenter-design"></a>
 
@@ -54,49 +56,51 @@ Consul server agent 负责维护集群状态、响应 RPC 查询（读取）以�
 
 在集群上必须小心使用服务标签的查询。如果两个服务（比如 blue 和 green）运行在同一个集群下，必须用恰当的标签来区别它们。如果不用标签，那 blue 和 green 都会显示在查询结果之中。
 
-如果由于网络问题 agent 无法遍历全量网格，则可以使用 Consul 自己的[网络分段](https://www.consul.io/docs/enterprise/network-segments/index.html)。这部分属于企业级功能，不再赘述。Network segments is a Consul Enterprise feature that allows the creation of multiple tenants which share Raft servers in the same cluster. Each tenant has its own gossip pool and doesn't communicate with the agents outside this pool. The KV store, however, is shared between all tenants. If Consul network segments cannot be used, isolation between agents can be accomplished by creating discrete [Consul datacenters](https://www.consul.io/docs/guides/datacenters.html).
+如果由于网络问题 agent 无法遍历全量网格，则可以使用 Consul 自己的[网络分段](https://www.consul.io/docs/enterprise/network-segments/index.html)。网络分段是 Consul Enterprise 的功能，允许在同一集群下为共享 Raft 服务器创建多个租户\(tenant\)。每个租户都有自己的交流池且不与池外的 agent 通信。但是 KV 存储则是在这些租户之间共享的。如果 Consul 王国分段不可用，则可以通过分别创建 [Consul 数据中心](https://kingfree.gitbook.io/consul/guides/datacenters)来实现 agent 之间的隔离。
 
 #### 多数据中心 <a id="multiple-datacenters"></a>
 
-Consul clusters in different datacenters running the same service can be joined by WAN links. The clusters operate independently and only communicate over the WAN on port `8302`. Unless explicitly configured via CLI or API, the Consul server will only return results from the local datacenter. Consul does not replicate data between multiple datacenters. The [consul-replicate](https://github.com/hashicorp/consul-replicate) tool can be used to replicate the KV data periodically.
+运行相同服务的不同数据中心的 Consul 集群可以用外网连接起来。集群的行为是互相独立的，且只会通过外网的 8302 端口进行通信。除非通过 CLI 或 API 特别指明，默认情况 Consul 只会返回本地数据中心的结果。Consul 不会在多数据中心之间共享数据。[consul-replicate](https://github.com/hashicorp/consul-replicate) 工具可以用来定期同步 KV 数据。
 
-A good practice is to enable TLS server name checking to avoid accidental cross-joining of agents.
+{% hint style="info" %}
+建议启用 TLS 服务器名以避免无意间的 agent 混连。
+{% endhint %}
 
-Advanced federation can be achieved with the [network areas](https://www.consul.io/api/operator/area.html) feature in Consul Enterprise.
+进阶可以参考 Consul Enterprise 的[网络分区](https://www.consul.io/api/operator/area.html)\(network area\)功能。
 
-A typical use case is where datacenter1 \(dc1\) hosts share services like LDAP \(or ACL datacenter\) which are leveraged by all other datacenters. However, due to compliance issues, servers in dc2 must not connect with servers in dc3. This cannot be accomplished with the basic WAN federation. Basic federation requires that all the servers in dc1, dc2 and dc3 are connected in a full mesh and opens both gossip \(`8302 tcp/udp`\) and RPC \(`8300`\) ports for communication.
+一个典型的用法是在数据中心1\(dc1\)主机中为其他数据中心共享一个类似 LDAP（或 ACL 数据中心）的服务。然而由于规则问题，dc2 中的服务器不能直接与 dc3 的服务器进行连接。这不能简单地通过基础外网服务进行连接。基本联结\(basic federation\)需要 dc1, dc2 和 dc3 的所有服务器都连接在一个完整的网格内，并开启了交流端口\(`8302 tcp/udp`\)和 RPC\(`8300`\)通信端口。
 
-Network areas allows peering between datacenters to make the services discoverable over WAN. With network areas, servers in dc1 can communicate with those in dc2 and dc3. However, no connectivity needs to be established between dc2 and dc3 which meets the compliance requirement of the organization in this use case. Servers that are part of the network area communicate over RPC only. This removes the overhead of sharing and maintaining the symmetric key used by the gossip protocol across datacenters. It also reduces the attack surface at the gossip ports since they no longer need to be opened in security gateways or firewalls.
+网络分区允许数据中心通过可发现的外网连接互相交流。使用网络分区，dc1 的服务器可以与 dc2 和 dc3 的服务器进行通信，而并不需要在 dc2 和 dc3 之间建立连接。网络分区中的服务仅会通过 RPC 进行通信，这取消了跨数据中心共享和维护交流协议的对称加密所产生的开销。它还使得针对于交流端口的攻击被安全网关或者防火墙阻挡在外。
 
-Consul's [prepared queries](https://www.consul.io/api/query.html) allow clients to do a datacenter failover for service discovery. For example, if a service `payment` in the local datacenter dc1 goes down, a prepared query lets users define a geographic fallback order to the nearest datacenter to check for healthy instances of the same service.
+Consul 的[预备查询](https://www.consul.io/api/query.html)\(prepared query\)可以使得服务发现支持数据中心故障转移。比如本地 dc1 的 `payment` 服务挂掉了，预备查询机制就会引导用户回到最近的数据中心去检查该服务的其他健康实例。
 
-**NOTE** Consul clusters must be WAN linked for a prepared query to work across datacenters.
+{% hint style="warning" %}
+**提示** 要想跨数据中心执行预备查询，Consul 集群之间必须通过外网连接。
+{% endhint %}
 
-Prepared queries, by default, resolve the query in the local datacenter first. Querying KV store features is not supported by the prepared query. Prepared queries work with ACL. Prepared query config/templates are maintained consistently in Raft and are executed on the servers.
+预备查询默认优先解决本地数据中心的查询。预备查询并不支持对 KV 存储的查询。预备查询支持 ACL。预备查询还用于在 Raft 中保持服务器执行的配置和模板的一致性。
 
 ### 网络连通性 <a id="network-connectivity"></a>
 
-LAN gossip occurs between all agents in a single datacenter with each agent sending a periodic probe to random agents from its member list. Agents run in either client or server mode, both participate in the gossip. The initial probe is sent over UDP every second. If a node fails to acknowledge within `200ms`, the agent pings over TCP. If the TCP probe fails \(10 second timeout\), it asks configurable number of random nodes to probe the same node \(also known as an indirect probe\). If there is no response from the peers regarding the status of the node, that agent is marked as down.
+内网通信发生在但数据中心的所有 agent 之间，每个 agent 都会向成员列表的随机成员发送定期探测。无论 agent 运行在 server 模式还是 client 模式，都会参与这一交流。刚开始会每秒通过 UDP 进行，如果节点在 200ms 内未能完成确认，则会通过 TCP 进行探测。如果 TCP 超过 10s，它会从指定的数目的随机节点去探测这个节点（也成为间接探测）。如果仍然没有该节点的响应，就认为该 agent 已下线。
 
-The agent's status directly affects the service discovery results. If an agent is down, the services it is monitoring will also be marked as down.
+agent 的状态直接影响服务发现的结果。如果 agent 下线，上面监控的服务也会被标记为下线状态。
 
-In addition, the agent also periodically performs a full state sync over TCP which gossips each agentâs understanding of the member list around it \(node names, IP addresses, and health status\). These operations are expensive relative to the standard gossip protocol mentioned above and are synced at a rate determined by cluster size to keep overhead low. It's typically between 30 seconds and 5 minutes. For more details, refer to [Serf Gossip docs](https://www.serf.io/docs/internals/gossip.html)
+此外，agent 还定期通过 TCP 进行全量同步，这使得每个 agent 都能知道它周围的成员列表，包括节点的名字、IP 地址和健康状态。这些操作的开销取决于上面提到的交流协议，它由集群大小限制着同步速率以保持较低的负载。每次交流通常在 30 秒到 5 分钟之间。更多信息可参阅 [Serf Gossip 文档](https://www.serf.io/docs/internals/gossip.html)。
 
-In a larger network that spans L2 segments, traffic typically traverses through a firewall and/or a router. ACL or firewall rules must be updated to allow the following ports:
+在跨 L2 的大型网络中，流量会穿过防火墙和路由器。ACL 和防火墙规则需要启用以下端口：
 
 | 名称 | 端口 | 标识 | 描述 |
 | :--- | :--- | :--- | :--- |
-| Server RPC | 8300 |  | 用于接受来自其他 agent 的入站请求。仅 TCP。 |
-| Serf LAN | 8301 |  | 用于在局域网上交流。所有 agent 都依赖此。TCP 和 UDP。 |
+| Server RPC | 8300 | ​ | 用于接受来自其他 agent 的入站请求。仅 TCP。 |
+| Serf LAN | 8301 | ​ | 用于在局域网上交流。所有 agent 都依赖此。TCP 和 UDP。 |
 | Serf WAN | 8302 | `-1` 以禁用 \(Consul 1.0.7 可用\) | 用于在广域网上交流。TCP 和 UDP。 |
-| HTTP API | 8500 | `-1` 以禁用 | 用于客户端与 HTTP API  通信。仅 TCP。 |
-| DNS Interface | 8600 | `-1` 以禁用 |  |
+| HTTP API | 8500 | `-1` 以禁用 | 用于客户端与 HTTP API 通信。仅 TCP。 |
+| DNS Interface | 8600 | `-1` 以禁用 | ​ |
 
-As mentioned in the [datacenter design section](https://learn.hashicorp.com/consul/advanced/day-1-operations/reference-architecture#datacenter-design), network areas and network segments can be used to prevent opening up firewall ports between different subnets.
+{% hint style="info" %}
+依前面数据中心设计一节所说，网络分区和网络分段可以避免不同子网之间去开启防火墙端口。
+{% endhint %}
 
-By default agents will only listen for HTTP and DNS traffic on the local interface.
-
-### 总结 <a id="summary"></a>
-
-Next, review the Deployment Guide to learn the steps required to install and configure a single HashiCorp Consul cluster.
+默认情况下 HTTP 和 DNS 端口只会监听本地地址。
 

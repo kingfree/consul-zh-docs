@@ -15,7 +15,7 @@
   * [2. Consul 参考架构](day-1-operations/reference-architecture.md)
   * [3. 部署指南](day-1-operations/deployment-guide.md)
   * [4. 数据中心备份](day-1-operations/backup.md)
-  * [5. 启动 ACL 系统](day-1-operations/acl-guide.md)
+  * [5. 启用 ACL 系统](day-1-operations/acl-guide.md)
   * [6. 创建并配置 TLS 认证](day-1-operations/certificates.md)
   * [7. Agent 加密数据交换](day-1-operations/agent-encryption.md)
   * [8. Consul Cluster 监控和指标](day-1-operations/monitoring.md)
