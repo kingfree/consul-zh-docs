@@ -1,4 +1,4 @@
-# 5. 权限控制列表 ACL
+# 4. 权限控制列表 ACL
 
 Consul 使用权限控制列表\(Access Control List, ACL\)实现 UI、API、CLI、服务和 agent 交流的安全性。交流和 RPC 的详细内容参见[该教程](https://kingfree.gitbook.io/consul/day-1-operations/agent-encryption)。要为你的集群实现安全性请先配置 ACL。
 
