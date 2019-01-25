@@ -1,32 +1,32 @@
 # Connect
 
-Consul Connect provides service-to-service connection authorization and encryption using mutual TLS. Applications can use [sidecar proxies](https://www.consul.io/docs/connect/proxies.html) to automatically establish TLS connections for inbound and outbound connections without being aware of Connect at all. Applications may also [natively integrate with Connect](https://www.consul.io/docs/connect/native.html) for optimal performance and security.
+Consul Connect 提供了一种通过 TLS 信道认证服务之间连接的方式。应用程序可以通过 [sidecar 代理](https://kingfree.gitbook.io/consul/connect/proxies)自动建立 TLS 连接，在无需知晓 Connect 存在的情况下接管出入流量。应用程序也可以通过[在内部集成 Connect](https://kingfree.gitbook.io/consul/connect/native) 来获取更好的性能和安全性。
 
-Connect enables deployment best-practices with service-to-service encryption everywhere and identity-based authorization. Rather than authorizing host-based access with IP address access rules, Connect uses the registered service identity to enforce access control with [intentions](https://www.consul.io/docs/connect/intentions.html). This makes it much easier to reason about access control and also enables services to freely move, such as in a scheduled environment with software such as Kubernetes or Nomad. Additionally, intention enforcement can be done regardless of the underlying network, so Connect works with physical networks, cloud networks, software-defined networks, cross-cloud, and more.
+Connect 使服务间加密和身份鉴权这一最佳部署方案得以到处可用。相对于传统的基于 IP 地址的主机间鉴权，Connect 使用 intention 来实现服务身份访问控制。这使得管理访问权限更为简单，让你可以自由地启用和移动某个服务，比如在 Kubernetes 和 Nomad 环境中。另外，intention 不依赖于底层网络，所以 Connect 可以在物理网络、云网络、软件定义网络\(SDN\)或者交叉网络中任意运行。
 
-### How it Works <a id="how-it-works"></a>
+### 工作原理 <a id="how-it-works"></a>
 
-The core of Connect is based on [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
+Connect 核心基于 [mTLS](https://en.wikipedia.org/wiki/Mutual_authentication)。
 
-Connect provides each service with an identity encoded as a TLS certificate. This certificate is used to establish and accept connections to and from other services. The identity is encoded in the TLS certificate in compliance with the [SPIFFE X.509 Identity Document](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md). This enables Connect services to establish and accept connections with other SPIFFE-compliant systems.
+Connect 为每个服务提供了一个以 TLS 证书编码的身份信息。该证书用于与其他服务建立和接受连接。该证书编码方式与 [SPIFFE X.509](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) 兼容，借此可以接入任何支持 SPIFFE 的系统。
 
-The client service verifies the destination service certificate against the [public CA bundle](https://www.consul.io/api/connect/ca.html#list-ca-root-certificates). This is very similar to a typical HTTPS web browser connection. In addition to this, the client provides its own client certificate to show its identity to the destination service. If the connection handshake succeeds, the connection is encrypted and authorized.
+客户端服务会通过[公共 CA 协议](https://www.consul.io/api/connect/ca.html#list-ca-root-certificates)来验证对方服务证书。这很像一个典型的 HTTPS 浏览器连接。在此之上，客户端提供它自己的证书给服务端，如果连接握手成功，该连接将被认证和进行加密。
 
-The destination service verifies the client certificate against the [public CA bundle](https://www.consul.io/api/connect/ca.html#list-ca-root-certificates). After verifying the certificate, it must also call the [authorization API](https://www.consul.io/api/agent/connect.html#authorize) to authorize the connection against the configured set of Consul intentions. If the authorization API responds successfully, the connection is established. Otherwise, the connection is rejected.
+服务端也通过公共 CA 协议来验证客户端整数。验证完成后，服务端将会调用[认证 API](https://www.consul.io/api/agent/connect.html#authorize) 来检查 Consul intention 的设置。如果认证 API 返回成功，连接就会建立，否则就会拒绝。
 
-To generate and distribute certificates, Consul has a built-in CA that requires no other dependencies, and also ships with built-in support for [Vault](https://www.consul.io/docs/connect/index.html#). The PKI system is pluggable and can be [extended](https://www.consul.io/docs/connect/index.html#) to support any system.
+Consul 提供了一套内置的方案来生成并分发证书，还内建了对 [Vault](https://www.consul.io/docs/connect/index.html#) 的支持。PKI 系统可以随意插拔并[扩展](https://www.consul.io/docs/connect/index.html#)到支持任意系统。
 
-All APIs required for Connect typically respond in microseconds and impose minimal overhead to existing services. This is because the Connect-related APIs are all made to the local Consul agent over a loopback interface, and all [agent Connect endpoints](https://www.consul.io/api/agent/connect.html) implement local caching, background updating, and support blocking queries. As a result, most API calls operate on purely local in-memory data and can respond in microseconds.
+Connect 的所有 API 通常都要在数毫秒内响应，并对已有服务产生最小的影响。这是因为 Connect 相关 API 都是基于本地 Consul agent 的本地接口的，所有 [agent Connect 接入点](https://www.consul.io/api/agent/connect.html)都实现了本地缓存、后台更新和阻塞查询。多数 API 调用都会落在内存上并在数毫秒内返回。
 
-### Getting Started With Connect <a id="getting-started-with-connect"></a>
+### 开始学习 Connect <a id="getting-started-with-connect"></a>
 
-There are several ways to try Connect in different environments.
+在不同环境使用 Connect 有不同方案：
 
-* The [Connect introduction](https://learn.hashicorp.com/consul/getting-started/connect) in the Getting Started guide provides a simple walk through of getting two services to communicate via Connect using only Consul directly on your local machine.
-* The [Envoy guide](https://www.consul.io/docs/guides/connect-envoy.html) walks through getting started with Envoy as a proxy, and uses Docker to run components locally without installing anything else.
-* The [Kubernetes documentation](https://www.consul.io/docs/platform/k8s/run.html) shows how to get from an empty Kubernetes cluster to having Consul installed and Envoy configured to proxy application traffic automatically using the official helm chart.
+* 基础教程中的 [Connect 介绍](https://learn.hashicorp.com/consul/getting-started/connect)给出了在两个服务间通信的简单例子。
+* [Envoy 教程](https://www.consul.io/docs/guides/connect-envoy.html)讲述了通过以 Envoy 为代理使用 Docker 运行组件的方式。
+* [Kubernetes 文档](https://www.consul.io/docs/platform/k8s/run.html) 介绍了如何按照官方架构，从一个已有 Consul 和 Envoy 的空 Kubernetes 集群上自动配置应用程序代理的步骤。
 
-### Agent Caching and Performance <a id="agent-caching-and-performance"></a>
+### Agent 缓存和性能 <a id="agent-caching-and-performance"></a>
 
 To enable microsecond-speed responses on [agent Connect API endpoints](https://www.consul.io/api/agent/connect.html), the Consul agent locally caches most Connect-related data and sets up background [blocking queries](https://www.consul.io/api/index.html#blocking-queries) against the server to update the cache in the background. This allows most API calls such as retrieving certificates or authorizing connections to use in-memory data and respond very quickly.
 
@@ -38,7 +38,7 @@ With Connect enabled, you'll likely see increased memory usage by the local Cons
 
 The cache does not evict entries due to memory pressure. If memory capacity is reached, the process will attempt to swap. If swap is disabled, the Consul agent may begin failing and eventually crash. Cache entries do have TTLs associated with them and will evict their entries if they're not used. Given a long period of inactivity \(3 days by default\), the cache will empty itself.
 
-### Multi-Datacenter <a id="multi-datacenter"></a>
+### 多数据中心 <a id="multi-datacenter"></a>
 
 Using Connect for service-to-service communications across multiple datacenters requires Consul Enterprise.
 

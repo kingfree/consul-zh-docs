@@ -1,4 +1,4 @@
-# Connect Security
+# Connect 安全性
 
 Connect enables secure service-to-service communication over mutual TLS. This provides both in-transit data encryption as well as authorization. This page will document how to secure Connect. For a full security model reference, see the dedicated [Consul security model](https://www.consul.io/docs/internals/security.html) page.
 
@@ -6,7 +6,7 @@ Connect will function in any Consul configuration. However, unless the checklist
 
 **Warning**: The checklist below should not be considered exhaustive. Please read and understand the [Consul security model](https://www.consul.io/docs/internals/security.html) in depth to assess whether your deployment satisfies the security requirements of Consul.
 
-### Checklist <a id="checklist"></a>
+### 核查表 <a id="checklist"></a>
 
 #### ACLs Enabled with Default Deny <a id="acls-enabled-with-default-deny"></a>
 

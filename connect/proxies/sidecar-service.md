@@ -1,4 +1,4 @@
-# Sidecar Service Registration
+# Sidecar 服务注册
 
 Connect proxies are typically deployed as "sidecars" that run on the same node as the single service instance that they handle traffic for. They might be on the same VM or running as a separate container in the same network namespace.
 

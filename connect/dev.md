@@ -1,4 +1,4 @@
-# Developing and Debugging Connect Services
+# Connect 服务的开发和调试
 
 It is often necessary to connect to a service for development or debugging. If a service only exposes a Connect listener, then we need a way to establish a mutual TLS connection to the service. The [`consul connect proxy` command](https://www.consul.io/docs/commands/connect/proxy.html) can be used for this task on any machine with access to a Consul agent \(local or remote\).
 

@@ -1,4 +1,4 @@
-# Connect on Nomad
+# Nomad 上的 Connect
 
 Connect can be used with [Nomad](https://www.nomadproject.io/) to provide secure service-to-service communication between Nomad jobs and task groups. The ability to use the [dynamic port](https://www.nomadproject.io/docs/job-specification/network.html#dynamic-ports) feature of Nomad makes Connect particularly easy to use.
 

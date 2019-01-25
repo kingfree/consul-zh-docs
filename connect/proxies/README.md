@@ -1,4 +1,4 @@
-# Proxies
+# 代理
 
 A Connect-aware proxy enables unmodified applications to use Connect. A per-service proxy sidecar transparently handles inbound and outbound service connections, automatically wrapping and verifying TLS connections.
 

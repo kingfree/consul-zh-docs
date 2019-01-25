@@ -1,4 +1,4 @@
-# Certificate Management
+# 证书管理
 
 Certificate management in Connect is done centrally through the Consul servers using the configured CA \(Certificate Authority\) provider. A CA provider manages root and intermediate certificates and performs certificate signing operations. The Consul leader orchestrates CA provider operations as necessary, such as when a service needs a new certificate or during CA rotation events.
 

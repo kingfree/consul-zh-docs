@@ -1,4 +1,4 @@
-# Connect Custom Proxy Integration
+# Connect 集成自定义代理
 
 Any proxy can be extended to support Connect. Consul ships with a built-in proxy for a good development and out of the box experience, but understand that production users will require other proxy solutions.
 

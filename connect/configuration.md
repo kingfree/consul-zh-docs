@@ -1,10 +1,10 @@
-# Connect Configuration
+# Connect 配置
 
-There are many configuration options exposed for Connect. The only option that must be set is the "enabled" option on Consul Servers to enable Connect. All other configurations are optional and have reasonable defaults.
+有很多可以暴露给 Connect 的设置项，除了需要启用“enabled”选项之外，其他选项都有各自合理的默认值。
 
-### Enable Connect on the Cluster <a id="enable-connect-on-the-cluster"></a>
+### 为集群启用 Connect <a id="enable-connect-on-the-cluster"></a>
 
-The first step to use Connect is to enable Connect for your Consul cluster. By default, Connect is disabled. Enabling Connect requires changing the configuration of only your Consul _servers_ \(not client agents\). To enable Connect, add the following to a new or existing [server configuration file](https://www.consul.io/docs/agent/options.html). In HCL:
+首先应该为集群启用 Connect。默认情况 Connect 是禁用的。要想启用，只需要修改 Consul server（而非 client）设置，创建一个新的或修改已有的 HCL 文件如下：
 
 ```text
 connect {
@@ -12,19 +12,23 @@ connect {
 }
 ```
 
-This will enable Connect and configure your Consul cluster to use the built-in certificate authority for creating and managing certificates. You may also configure Consul to use an external [certificate management system](https://www.consul.io/docs/connect/ca.html), such as [Vault](https://vaultproject.io/).
+该操作会启用 Connect 并用内置的证书认证机制来配置你的 Consul 集群。你也可以用 Vault 这样的工具来扩展 Consul 的[认证管理系统](https://kingfree.gitbook.io/consul/connect/ca)。
 
-No agent-wide configuration is necessary for non-server agents. Services and proxies may always register with Connect settings, but they will fail to retrieve or verify any TLS certificates. This causes all Connect-based connection attempts to fail until Connect is enabled on the server agents.
+不提供代理服务的 agent 不需要配置该选项。任意配置的话会导致服务和代理会用 Connect 的设置来验证 TLS 证书而注册失败，直到 server 也配置上了 Connect。
 
-**Note:** Connect is enabled by default when running Consul in dev mode with `consul agent -dev`.
+{% hint style="info" %}
+**提示** 开发模式下 `consul agent -dev` 会默认启用 Connect。
+{% endhint %}
 
-**Security note:** Enabling Connect is enough to try the feature but doesn't automatically ensure complete security. Please read the [Connect production guide](https://www.consul.io/docs/guides/connect-production.html) to understand the additional steps needed for a secure deployment.
+{% hint style="info" %}
+安全提示 仅启用 Connect 的话对于体验功能是可以的，但不保证完全安全。请阅读 [Connect 生产指南](https://kingfree.gitbook.io/consul/guides/connect-production)来学习安全部署需要的更多步骤。
+{% endhint %}
 
-### Built-In Proxy Options <a id="built-in-proxy-options"></a>
+### 内建代理选项 <a id="built-in-proxy-options"></a>
 
-This is a complete example of all the configuration options available for the built-in proxy. Note that only the `service.connect.proxy.config` and `service.connect.proxy.upsteams[].config` maps are being described here, the rest of the service definition is shown for context but is [described elsewhere](https://www.consul.io/docs/connect/proxies.html#managed-proxies).
+这是内建代理可用的完整配置项，需要配置到服务定义文件里。注意这里只有 `service.connect.proxy.config` 和 `service.connect.proxy.upsteams[].config` ，其他服务定义的部分请参见[别的描述](https://kingfree.gitbook.io/consul/connect/proxies.html#managed-proxies)。
 
-```text
+```javascript
 {
   "service": {
     ...
@@ -54,22 +58,22 @@ This is a complete example of all the configuration options available for the bu
 }
 ```
 
-**Proxy Config Key Reference**
+**Proxy Config 参数说明**
 
-All fields are optional with a sane default.
+所有参数都有一个合理的默认值。
 
-* [`bind_address`](https://www.consul.io/docs/connect/configuration.html#bind_address) - The address the proxy will bind it's _public_ mTLS listener to. It defaults to the same address the agent binds to.
-* [`bind_port`](https://www.consul.io/docs/connect/configuration.html#bind_port) - The port the proxy will bind it's _public_ mTLS listener to. If not provided, the agent will attempt to assign one from its [configured proxy port range](https://www.consul.io/docs/agent/options.html#proxy_min_port) if available. By default the range is \[20000, 20255\] and the port is selected at random from that range.
+* [`bind_address`](https://www.consul.io/docs/connect/configuration.html#bind_address) - 代理绑定的_公共_ mTLS 地址。默认与 agent 的绑定地址相同。
+* [`bind_port`](https://www.consul.io/docs/connect/configuration.html#bind_port) - 代理绑定的_公共_ mTLS 端口。 如果不填，agent 会从[代理端口范围](https://www.consul.io/docs/agent/options.html#proxy_min_port)中随机选一个出来，默认是 \[20000, 20255\]。
 * [`tcp_check_address`](https://www.consul.io/docs/connect/configuration.html#tcp_check_address) - The address the agent will run a [TCP health check](https://www.consul.io/docs/agent/checks.html) against. By default this is the same as the proxy's [bind address](https://www.consul.io/docs/connect/configuration.html#bind_address) except if the bind\_address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1` and assumes the agent can dial the proxy over loopback. For more complex configurations where agent and proxy communicate over a bridge for example, this configuration can be used to specify a different _address_ \(but not port\) for the agent to use for health checks if it can't talk to the proxy over localhost or it's publicly advertised port. The check always uses the same port that the proxy is bound to.
 * [`disable_tcp_check`](https://www.consul.io/docs/connect/configuration.html#disable_tcp_check) - If true, this disables a TCP check being setup for the proxy. Default is false.
 * [`local_service_address`](https://www.consul.io/docs/connect/configuration.html#local_service_address) - The `[address]:port` that the proxy should use to connect to the local application instance. By default it assumes `127.0.0.1` as the address and takes the port from the service definition's `port` field. Note that allowing the application to listen on any non-loopback address may expose it externally and bypass Connect's access enforcement. It may be useful though to allow non-standard loopback addresses or where an alternative known-private IP is available for example when using internal networking between containers.
 * [`local_connect_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#local_connect_timeout_ms) - The number of milliseconds the proxy will wait to establish a connection to the _local application_ before giving up. Defaults to `1000` or 1 second.
 * [`handshake_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#handshake_timeout_ms) - The number of milliseconds the proxy will wait for _incoming_ mTLS connections to complete the TLS handshake. Defaults to `10000` or 10 seconds.
-* [`upstreams`](https://www.consul.io/docs/connect/configuration.html#upstreams) - **Deprecated** Upstreams are now specified in the `connect.proxy` definition. Upstreams specified in the opaque config map here will continue to work for compatibility but it's strongly recommended that you move to using the higher level [upstream configuration](https://www.consul.io/docs/connect/proxies.html#upstream-configuration).
+* [`upstreams`](https://www.consul.io/docs/connect/configuration.html#upstreams) - **已废弃** Upstreams are now specified in the `connect.proxy` definition. Upstreams specified in the opaque config map here will continue to work for compatibility but it's strongly recommended that you move to using the higher level [upstream configuration](https://www.consul.io/docs/connect/proxies.html#upstream-configuration).
 
-**Proxy Upstream Config Key Reference**
+**Proxy Upstream Config 参数说明**
 
-All fields are optional with a sane default.
+所有参数都有一个合理的默认值。
 
 * [`connect_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#connect_timeout_ms) - The number of milliseconds the proxy will wait to establish a TLS connection to the discovered upstream instance before giving up. Defaults to `10000` or 10 seconds.
 

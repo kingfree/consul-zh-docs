@@ -1,4 +1,4 @@
-# Intentions
+# Intention
 
 Intentions define access control for services via Connect and are used to control which services may establish connections. Intentions can be managed via the API, CLI, or UI.
 

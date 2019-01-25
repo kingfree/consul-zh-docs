@@ -1,4 +1,4 @@
-# Envoy Integration
+# Envoy 集成
 
 Consul Connect has first class support for using [Envoy](https://www.envoyproxy.io/) as a proxy. Consul configures Envoy by optionally exposing a gRPC service on the local agent that serves [Envoy's xDS configuration API](https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md).
 

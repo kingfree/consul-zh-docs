@@ -1,4 +1,4 @@
-# Native App Integration
+# 原生应用集成
 
 Applications can natively integrate with the Connect API to support accepting and establishing connections to other Connect services without the overhead of a [proxy sidecar](https://www.consul.io/docs/connect/proxies.html). This option is especially useful for applications that may be experiencing performance issues with the proxy sidecar deployment. This page will cover the high-level overview of integration, registering the service, etc. For language-specific examples, see the sidebar navigation to the left.
 
