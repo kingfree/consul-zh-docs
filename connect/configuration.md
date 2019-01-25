@@ -64,16 +64,16 @@ connect {
 
 * [`bind_address`](https://www.consul.io/docs/connect/configuration.html#bind_address) - 代理绑定的_公共_ mTLS 地址。默认与 agent 的绑定地址相同。
 * [`bind_port`](https://www.consul.io/docs/connect/configuration.html#bind_port) - 代理绑定的_公共_ mTLS 端口。 如果不填，agent 会从[代理端口范围](https://www.consul.io/docs/agent/options.html#proxy_min_port)中随机选一个出来，默认是 \[20000, 20255\]。
-* [`tcp_check_address`](https://www.consul.io/docs/connect/configuration.html#tcp_check_address) - The address the agent will run a [TCP health check](https://www.consul.io/docs/agent/checks.html) against. By default this is the same as the proxy's [bind address](https://www.consul.io/docs/connect/configuration.html#bind_address) except if the bind\_address is `0.0.0.0` or `[::]` in which case this defaults to `127.0.0.1` and assumes the agent can dial the proxy over loopback. For more complex configurations where agent and proxy communicate over a bridge for example, this configuration can be used to specify a different _address_ \(but not port\) for the agent to use for health checks if it can't talk to the proxy over localhost or it's publicly advertised port. The check always uses the same port that the proxy is bound to.
-* [`disable_tcp_check`](https://www.consul.io/docs/connect/configuration.html#disable_tcp_check) - If true, this disables a TCP check being setup for the proxy. Default is false.
-* [`local_service_address`](https://www.consul.io/docs/connect/configuration.html#local_service_address) - The `[address]:port` that the proxy should use to connect to the local application instance. By default it assumes `127.0.0.1` as the address and takes the port from the service definition's `port` field. Note that allowing the application to listen on any non-loopback address may expose it externally and bypass Connect's access enforcement. It may be useful though to allow non-standard loopback addresses or where an alternative known-private IP is available for example when using internal networking between containers.
-* [`local_connect_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#local_connect_timeout_ms) - The number of milliseconds the proxy will wait to establish a connection to the _local application_ before giving up. Defaults to `1000` or 1 second.
-* [`handshake_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#handshake_timeout_ms) - The number of milliseconds the proxy will wait for _incoming_ mTLS connections to complete the TLS handshake. Defaults to `10000` or 10 seconds.
+* [`tcp_check_address`](https://www.consul.io/docs/connect/configuration.html#tcp_check_address) - 运行 [TCP 健康检查](https://www.consul.io/docs/agent/checks.html)的地址。默认与代理的[绑定地址](https://www.consul.io/docs/connect/configuration.html#bind_address)一致，如果 bind\_address 是 `0.0.0.0` 或`[::]` 则会设置为 `127.0.0.1` 以使代理可以通过本地回环连接。如果 agent 和代理之间通过桥而无法通过 localhost 或建议的公共端口通信的话，该选项需要为该 agent 提供一个不同的_地址_（不是端口）用于健康检查。该检查的端口总是和代理绑定的端口一致。
+* [`disable_tcp_check`](https://www.consul.io/docs/connect/configuration.html#disable_tcp_check) - 如果为 true 则会禁用代理的 TCP 检查。默认为 false。
+* [`local_service_address`](https://www.consul.io/docs/connect/configuration.html#local_service_address) - 代理用于连接到本地应用程序实例的 `[address]:port` 地址。默认地址为 `127.0.0.1` ，端口是服务定义文件中的 `port` 字段。注意当应用程序可以监听非本地回环地址时，该选项可以绕过 Connect 而从公网访问。它可用通过非标准的本地回环地址，或者像在容器间内网这种的自定义私网 IP 可用地址。
+* [`local_connect_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#local_connect_timeout_ms) - 代理建立到_本地应用_的超时等待毫秒数。默认为 `1000` 即 1 秒。
+* [`handshake_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#handshake_timeout_ms) - 代理建立 TLS 握手等待 mTLS _入站流量_的超时时间。默认为 `10000` 即 10 秒。
 * [`upstreams`](https://www.consul.io/docs/connect/configuration.html#upstreams) - **已废弃** Upstreams are now specified in the `connect.proxy` definition. Upstreams specified in the opaque config map here will continue to work for compatibility but it's strongly recommended that you move to using the higher level [upstream configuration](https://www.consul.io/docs/connect/proxies.html#upstream-configuration).
 
 **Proxy Upstream Config 参数说明**
 
 所有参数都有一个合理的默认值。
 
-* [`connect_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#connect_timeout_ms) - The number of milliseconds the proxy will wait to establish a TLS connection to the discovered upstream instance before giving up. Defaults to `10000` or 10 seconds.
+* [`connect_timeout_ms`](https://www.consul.io/docs/connect/configuration.html#connect_timeout_ms) - 代理等待建立 TLS 连接到已发现的上游实例的超时等待时间。默认为 `10000` 即 10 秒。
 

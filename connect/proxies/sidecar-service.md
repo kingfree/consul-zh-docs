@@ -6,7 +6,7 @@ To simplify the configuration experience when deploying a sidecar for a service 
 
 The `connect.sidecar_service` field is a complete nested service definition on which almost any regular service definition field can be set. The exceptions are [noted below](https://www.consul.io/docs/connect/proxies/sidecar-service.html#limitations). If used, the service definition is treated identically to another top-level service definition. The value of the nested definition is that _all fields are optional_ with some opinionated defaults applied that make setting up a sidecar proxy much simpler.
 
-### Minimal Example <a id="minimal-example"></a>
+### 最小样例 <a id="minimal-example"></a>
 
 To register a service instance with a sidecar, all that's needed is:
 
@@ -55,7 +55,7 @@ Details on how the defaults are determined are [documented below](https://www.co
 
 **Note:** Sidecar service registrations are only a shorthand for registering multiple services. Consul will not start up or manage the actual proxy processes for you.
 
-### Overridden Example <a id="overridden-example"></a>
+### 重写样例 <a id="overridden-example"></a>
 
 The following example shows a service definition where some fields are overridden to customize the proxy configuration.
 
@@ -83,7 +83,7 @@ The following example shows a service definition where some fields are overridde
 
 This example customizes the [proxy upstreams](https://www.consul.io/docs/connect/proxies.html#upstream-configuration-reference) and some [built-in proxy configuration](https://www.consul.io/docs/connect/configuration.html#built-in-proxy-options).
 
-### Sidecar Service Defaults <a id="sidecar-service-defaults"></a>
+### Sidecar 服务默认值 <a id="sidecar-service-defaults"></a>
 
 The following fields are set by default on a sidecar service registration. With [the exceptions noted](https://www.consul.io/docs/connect/proxies/sidecar-service.html#limitations) any field may be overridden explicitly in the `connect.sidecar_service` definition to customize the proxy registration. The "parent" service refers to the service definition that embeds the sidecar proxy.
 
@@ -97,7 +97,7 @@ The following fields are set by default on a sidecar service registration. With 
 * [`proxy.local_service_address`](https://www.consul.io/docs/connect/proxies/sidecar-service.html#proxy-local_service_address) - Defaults to `127.0.0.1`.
 * [`proxy.local_service_port`](https://www.consul.io/docs/connect/proxies/sidecar-service.html#proxy-local_service_port) - Defaults to the parent service port.
 
-### Limitations <a id="limitations"></a>
+### 取值限制 <a id="limitations"></a>
 
 Almost all fields in a [service definition](https://www.consul.io/docs/agent/services.html) may be set on the `connect.sidecar_service` except for the following:
 
@@ -107,7 +107,7 @@ Almost all fields in a [service definition](https://www.consul.io/docs/agent/ser
 * [`connect.proxy`](https://www.consul.io/docs/connect/proxies/sidecar-service.html#connect-proxy) - \(Deprecated\) [Managed proxies](https://www.consul.io/docs/connect/proxies/managed-deprecated.html) can't be defined on a sidecar.
 * [`connect.native`](https://www.consul.io/docs/connect/proxies/sidecar-service.html#connect-native) - Currently the `kind` is fixed to `connect-proxy` and it's an error to register a `connect-proxy` that is also Connect-native.
 
-### Lifecycle <a id="lifecycle"></a>
+### 生命周期 <a id="lifecycle"></a>
 
 Sidecar service registration is mostly a configuration syntax helper to avoid adding lots of boiler plate for basic sidecar options, however the agent does have some specific behavior around their lifecycle that makes them easier to work with.
 

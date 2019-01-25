@@ -6,7 +6,7 @@ Intentions are enforced by the [proxy](https://www.consul.io/docs/connect/proxie
 
 The default intention behavior is defined by the default [ACL policy](https://www.consul.io/docs/guides/acl.html). If the default ACL policy is "allow all", then all Connect connections are allowed by default. If the default ACL policy is "deny all", then all Connect connections are denied by default.
 
-### Intention Basics <a id="intention-basics"></a>
+### Intention 基础 <a id="intention-basics"></a>
 
 Intentions can be managed via the [API](https://www.consul.io/docs/connect/intentions.html#), [CLI](https://www.consul.io/docs/connect/intentions.html#), or UI. Please see the respective documentation for each for full details on options, flags, etc. Below is an example of a basic intention to show the basic attributes of an intention. The full data model of an intention can be found in the [API documentation](https://www.consul.io/docs/connect/intentions.html#).
 
@@ -30,7 +30,7 @@ Created: web => * (deny)
 
 This example says that the "web" service cannot connect to _any_ service.
 
-#### Metadata <a id="metadata"></a>
+#### 元数据 <a id="metadata"></a>
 
 Arbitrary string key/value data may be associated with intentions. This is unused by Consul but can be used by external systems or for visibility in the UI.
 
@@ -50,11 +50,11 @@ Meta[description]:  Hello there
 Created At:         Friday, 25-May-18 02:07:51 CEST
 ```
 
-### Precedence and Match Order <a id="precedence-and-match-order"></a>
+### 优先级和匹配顺序 <a id="precedence-and-match-order"></a>
 
 Intentions are matched in an implicit order based on specificity, preferring deny over allow. Specificity is determined by whether a value is an exact specified value or is the wildcard value `*`. The full precedence table is shown below and is evaluated top to bottom, with larger numbers being evaluated first.
 
-| Source Name | Destination Name | Precedence |
+| 来源 | 目的 | 优先级 |
 | :--- | :--- | :--- |
 | Exact | Exact | 9 |
 | `*` | Exact | 8 |
@@ -67,7 +67,7 @@ In the case the two precedence values match, Consul will evaluate intentions bas
 
 The numbers in the table above are not stable. Their ordering will remain fixed but the actual number values may change in the future. The numbers are non-contiguous because there are some unused values in the middle in preparation for a future version of Consul supporting namespaces.
 
-### Intention Management Permissions <a id="intention-management-permissions"></a>
+### Intention 权限管理 <a id="intention-management-permissions"></a>
 
 Intention management can be protected by [ACLs](https://www.consul.io/docs/guides/acl.html). Permissions for intentions are _destination-oriented_, meaning the ACLs for managing intentions are looked up based on the destination value of the intention, not the source.
 
@@ -92,7 +92,7 @@ Note that `intentions:read` is required for a token that a Connect-enabled servi
 
 **Security Note:** Explicitly allowing `intentions:write` on the token you provide to a service instance at registration time opens up a significant additional vulnerability. Although you may trust the service _team_ to define which inbound connections they accept, using a combined token for registration allows a compromised instance to to redefine the intentions which allows many additional attack vectors and may be hard to detect. We strongly recommend only delegating `intentions:write` using tokens that are used by operations teams or orchestrators rather than spread via application config, or only manage intentions with management tokens.
 
-### Performance and Intention Updates <a id="performance-and-intention-updates"></a>
+### 性能和更新 Intention <a id="performance-and-intention-updates"></a>
 
 The intentions for services registered with a Consul agent are cached locally on that agent. They are then updated via a background blocking query against the Consul servers.
 

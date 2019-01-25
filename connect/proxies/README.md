@@ -1,28 +1,30 @@
 # 代理
 
-A Connect-aware proxy enables unmodified applications to use Connect. A per-service proxy sidecar transparently handles inbound and outbound service connections, automatically wrapping and verifying TLS connections.
+由 Connect 提供的代理可以让应用程序不做修改即可接入 Connect。每个服务的代理 sidecar 都透明地接管了服务的出入站连接，提供对 TLS 的自动包装和认证功能。
 
-When a proxy is used, the actual service being proxied should only accept connections on a loopback address. This requires all external connections to be established via the Connect protocol to provide authentication and authorization.
+使用代理时，应该只让真正的服务接受本地回环地址上的连接。所有的外部连接都应该通过 Connect 协议提供的身份认证和鉴权机制建立。
 
-**Deprecation Note:** Managed Proxies are deprecated as of Consul 1.3. See [managed proxy deprecation](https://www.consul.io/docs/connect/proxies/managed-deprecated.html) for more information. It's strongly recommended to switch to one of the approaches listed on this page as soon as possible.
+{% hint style="info" %}
+**废弃说明：**Managed Proxy 从 Consul 1.3 已废弃。参见 [managed proxy deprecation](https://www.consul.io/docs/connect/proxies/managed-deprecated.html) 获取更多信息。强烈建议使用旧版本的用户尽快迁移到本文所提供的解决方案。
+{% endhint %}
 
-### Proxy Service Definitions <a id="proxy-service-definitions"></a>
+### 代理服务定义 <a id="proxy-service-definitions"></a>
 
-Connect proxies are registered using regular [service definitions](https://www.consul.io/docs/agent/services.html). They can be registered both in config files or via the API just like any other service.
+Connect 代理可以通过配置文件或者 API 进行[服务定义](https://www.consul.io/docs/agent/services.html)，本质上和其他服务是等同的。
 
-Additionally, to reduce the amount of boilerplate needed for a sidecar proxy, application service definitions may define inline [sidecar service registrations](https://www.consul.io/docs/connect/proxies/sidecar-service.html) which are an opinionated shorthand for a separate full proxy registration as described here.
+另外，为了减少写很多配置的麻烦步骤，应用程序也可以通过内联 [sidecar 服务注册](https://www.consul.io/docs/connect/proxies/sidecar-service.html)这种简写方案来进行注册。
 
-To function as a Connect proxy, they must be declared as a proxy type and provide information about the service they represent.
+为启用 Connect 代理功能，还需要提供该代理要代表的服务信息。
 
-To declare a service as a proxy, the service definition must contain the following fields:
+描述一个代理服务至少要包含如下字段：
 
-* [`kind`](https://www.consul.io/docs/connect/proxies.html#kind) \(string\) must be set to `connect-proxy`. This declares that the service is a proxy type.
-* [`proxy.destination_service_name`](https://www.consul.io/docs/connect/proxies.html#proxy-destination_service_name) \(string\) must be set to the service that this proxy is representing. Note that this replaces `proxy_destination` in versions 1.2.0 to 1.3.0.
-* [`port`](https://www.consul.io/docs/connect/proxies.html#port) must be set so that other Connect services can discover the exact address for connections. `address` is optional if the service is being registered against an agent, since it'll inherit the node address.
+* [`kind`](https://www.consul.io/docs/connect/proxies.html#kind) \(string\) 必须。必须设为 `connect-proxy`。表示这是一个代理服务。
+* [`proxy.destination_service_name`](https://www.consul.io/docs/connect/proxies.html#proxy-destination_service_name) \(string\) 必须。要代理的服务名。在 1.2.0 到 1.3.0 版本里该字段为 `proxy_destination`。
+* [`port`](https://www.consul.io/docs/connect/proxies.html#port) 必须。其他 Connect 可以发现的地址。可选参数 `address` 默认会继承节点的地址。
 
-Minimal Example:
+最小样例：
 
-```text
+```javascript
 {
   "name": "redis-proxy",
   "kind": "connect-proxy",
@@ -33,19 +35,19 @@ Minimal Example:
 }
 ```
 
-With this service registered, any Connect clients searching for a Connect-capable endpoint for "redis" will find this proxy.
+服务注册完成后，支持 Connect 的 client 就可以在查找 “redis” 时找到该代理。
 
-#### Sidecar Proxy Fields <a id="sidecar-proxy-fields"></a>
+#### Sidecar Proxy 选项说明 <a id="sidecar-proxy-fields"></a>
 
-Most Connect proxies are deployed as "sidecars" which means they are co-located with a single service instance which they represent and proxy all inbound traffic to. In this case the following fields must may also be set:
+多数 Connect 代理都以“sidecar”模式部署，它们与其所代表的单个服务实例处在同一位置，并代理所有入站流量。这种情况下还需要设置如下字段：
 
-* [`proxy.destination_service_id`](https://www.consul.io/docs/connect/proxies.html#proxy-destination_service_id) \(string\) is set to the _id_ \(and not the _name_ if they are different\) of the specific service instance that is being proxied. The proxied service is assumed to be registered on the same agent although it's not strictly validated to allow for un-coordinated registrations.
-* [`proxy.local_service_port`](https://www.consul.io/docs/connect/proxies.html#proxy-local_service_port) \(string\) must specify the port the proxy should use to connect to the _local_ service instance.
-* [`proxy.local_service_address`](https://www.consul.io/docs/connect/proxies.html#proxy-local_service_address) \(string\) can be set to override the IP or hostname the proxy should use to connect to the _local_ service. Defaults to `127.0.0.1`.
+* [`proxy.destination_service_id`](https://www.consul.io/docs/connect/proxies.html#proxy-destination_service_id) \(string\) 设为指定要代理的服务实例 _id_（如果 _name_ 不同）。代理后的服务会分配注册到同一个 agent 上，即便是未经验证的注册。
+* [`proxy.local_service_port`](https://www.consul.io/docs/connect/proxies.html#proxy-local_service_port) \(string\) 需要指定代理连接到_本地_服务实例的端口。
+* [`proxy.local_service_address`](https://www.consul.io/docs/connect/proxies.html#proxy-local_service_address) \(string\) 设为代理要连接到的本地服务的 IP 或主机名。默认为 `127.0.0.1`。
 
-#### Complete Configuration Example <a id="complete-configuration-example"></a>
+#### 完整配置样例 <a id="complete-configuration-example"></a>
 
-The following is a complete example showing all the options available when registering a proxy instance.
+下面展示了一个完整的代理注册实例。
 
 ```javascript
 {
@@ -63,24 +65,26 @@ The following is a complete example showing all the options available when regis
 }
 ```
 
-**Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was specified using `proxy_destination` at the top level. This will continue to work until at least 1.5.0 but it's highly recommended to switch to using`proxy.destination_service_name`.
+{% hint style="info" %}
+**废弃说明：**从 1.2.0 到 1.3.0 版本，代理目标会在顶级用 `proxy_destination` 指定，该选项会支持到至少 1.5.0 版本，但强烈建议用新的`proxy.destination_service_name`。
+{% endhint %}
 
-**Proxy Parameters**
+**Proxy 参数**
 
-* [`destination_service_name`](https://www.consul.io/docs/connect/proxies.html#destination_service_name) `string: <required>` - Specifies the _name_ of the service this instance is proxying. Both side-car and centralized load-balancing proxies must specify this. It is used during service discovery to find the correct proxy instances to route to for a given service name.
-* [`destination_service_id`](https://www.consul.io/docs/connect/proxies.html#destination_service_id) `string: <optional>` - Specifies the _ID_ of a single specific service instance that this proxy is representing. This is only valid for side-car style proxies that run on the same node. It is assumed that the service instance is registered via the same Consul agent so the ID is unique and has no node qualifier. This is useful to show in tooling which proxy instance is a side-car for which application instance and will enable fine-grained analysis of the metrics coming from the proxy.
-* [`local_service_address`](https://www.consul.io/docs/connect/proxies.html#local_service_address) `string: <optional>` - Specifies the address a side-car proxy should attempt to connect to the local application instance on. Defaults to 127.0.0.1.
-* [`local_service_port`](https://www.consul.io/docs/connect/proxies.html#local_service_port) `int: <optional>` - Specifies the port a side-car proxy should attempt to connect to the local application instance on. Defaults to the port advertised by the service instance identified by`destination_service_id` if it exists otherwise it may be empty in responses.
-* [`config`](https://www.consul.io/docs/connect/proxies.html#config) `object: <optional>` - Specifies opaque config JSON that will be stored and returned along with the service instance from future API calls.
-* [`upstreams`](https://www.consul.io/docs/connect/proxies.html#upstreams) `array<Upstream>: <optional>` - Specifies the upstream services this proxy should create listeners for. The format is defined in [Upstream Configuration Reference](https://www.consul.io/docs/connect/proxies.html#upstream-configuration-reference).
+* [`destination_service_name`](https://www.consul.io/docs/connect/proxies.html#destination_service_name) `string: <必须>` - 指定该实例代理服务的 _name_ 。包括 side-car 和中央负载均衡代理都需要指定该字段。它用于服务发现时根据给定的服务名来找到正确的代理实例。
+* [`destination_service_id`](https://www.consul.io/docs/connect/proxies.html#destination_service_id) `string: <可选>` - 代理表示的单个指定服务实例 _ID_。仅对在同一节点上运行的 sidecar 代理有效，因为通过同一 Consul agent 注册的服务实例虽然节点一样但 ID 是唯一的。这对于在工具中显示哪个代理实例才是应用程序实例的 sider 很实用，并可以支持对代理粒度的细分。
+* [`local_service_address`](https://www.consul.io/docs/connect/proxies.html#local_service_address) `string: <可选>` - 指定 sidecar 代理要连接到的本地实例地址。默认为 127.0.0.1。
+* [`local_service_port`](https://www.consul.io/docs/connect/proxies.html#local_service_port) `int: <可选>` - 指定 sidecar 代理要连接到的本地应用程序实例的端口。默认是服务定义中对应 `destination_service_id` 定义的端口，否则响应为空。
+* [`config`](https://www.consul.io/docs/connect/proxies.html#config) `object: <可选>` - 在将来的 API 调用中可能会用到的影响服务实例存储和返回的 JSON 配置对象。
+* [`upstreams`](https://www.consul.io/docs/connect/proxies.html#upstreams) `array<Upstream>: <可选>` - 指定代理要为哪些 upstream 服务创建监听器。格式定义参见 [Upstream 配置参考](https://www.consul.io/docs/connect/proxies.html#upstream-configuration-reference)。
 
-#### [»](https://www.consul.io/docs/connect/proxies.html#upstream-configuration-reference)Upstream Configuration Reference <a id="upstream-configuration-reference"></a>
+#### Upstream 选项说明 <a id="upstream-configuration-reference"></a>
 
-The following example shows all possible upstream configuration parameters.
+下面的例子展示了可能的上游配置参数。
 
-Note that in versions 1.2.0 to 1.3.0, managed proxy upstreams were specified inside the opaque `connect.proxy.config`map. The format is almost unchanged however managed proxy upstreams are now defined a level up in the`connect.proxy.upstreams`. The old location is deprecated and will be automatically converted into the new for an interim period before support is dropped in a future major release. The only difference in format between the upstream defintions is that the field `destination_datacenter` has been renamed to `datacenter` to reflect that it's the discovery target and not necessarily the same as the instance that will be returned in the case of a prepared query that fails over to another datacenter.
+注意在 1.2.0 到 1.3.0 版本中，managed proxy upstream 都在 `connect.proxy.config`映射中定义，该格式几乎没做变化，但现在 managed proxy upstream 定义在了`connect.proxy.upstreams`里。老的地方已经弃用了，并在未来几个版本中会被自动转换为新的。两个 upstream 定义中唯一的不同在于  `destination_datacenter` 改成了 `datacenter`。
 
-Note that `snake_case` is used here as it works in both [config file and API registrations](https://www.consul.io/docs/agent/services.html#service-definition-parameter-case).
+注意 `snake_case` 在[配置文件和 API 注册](https://www.consul.io/docs/agent/services.html#service-definition-parameter-case)中都可用。
 
 ```javascript
 {
@@ -93,14 +97,14 @@ Note that `snake_case` is used here as it works in both [config file and API reg
 },
 ```
 
-* [`destination_name`](https://www.consul.io/docs/connect/proxies.html#destination_name) `string: <required>` - Specifies the name of the service or prepared query to route connect to.
-* [`local_bind_port`](https://www.consul.io/docs/connect/proxies.html#local_bind_port) `int: <required>` - Specifies the port to bind a local listener to for the application to make outbound connections to this upstream.
-* [`local_bind_address`](https://www.consul.io/docs/connect/proxies.html#local_bind_address) `string: <optional>` - Specifies the address to bind a local listener to for the application to make outbound connections to this upstream. Defaults to `127.0.0.1`.
-* [`destination_type`](https://www.consul.io/docs/connect/proxies.html#destination_type) `string: <optional>` - Speficied the type of discovery query to use to find an instance to connect to. Valid values are `service` or `prepared_query`. Defaults to `service`.
-* [`datacenter`](https://www.consul.io/docs/connect/proxies.html#datacenter) `string: <optional>` - Specifies the datacenter to issue the discovery query too. Defaults to the local datacenter.
-* [`config`](https://www.consul.io/docs/connect/proxies.html#config-1) `object: <optional>` - Specifies opaque configuration options that will be provided to the proxy instance for this specific upstream. Can contain any valid JSON object. This might be used to configure proxy-specific features like timeouts or retries for the given upstream. See the [built-in proxy configuration reference](https://www.consul.io/docs/connect/configuration.html#built-in-proxy-options) for options available when using the built-in proxy. If using Envoy as a proxy, see [Envoy configuration reference](https://www.consul.io/docs/connect/configuration.html#envoy-options)
+* [`destination_name`](https://www.consul.io/docs/connect/proxies.html#destination_name) `string: <必须>` - 指定服务名，或者要路由到的预备查询。
+* [`local_bind_port`](https://www.consul.io/docs/connect/proxies.html#local_bind_port) `int: <必须>` - 指定该 upstream 为应用程序建立出站连接的本地监听端口。
+* [`local_bind_address`](https://www.consul.io/docs/connect/proxies.html#local_bind_address) `string: <可选>` - 指定该 upstream 为应用程序建立出站连接的本地监听地址。默认为 `127.0.0.1`。
+* [`destination_type`](https://www.consul.io/docs/connect/proxies.html#destination_type) `string: <可选>` - 指定查找实例所要连接的发现查询的类型。可用指为  `service` 或 `prepared_query`。默认为 `service`。
+* [`datacenter`](https://www.consul.io/docs/connect/proxies.html#datacenter) `string: <可选>` - 指定发现查询的数据中心。默认为本地数据中心。
+* [`config`](https://www.consul.io/docs/connect/proxies.html#config-1) `object: <可选>` - 指定该 upstream 提供给代理实例的额外配置。包含一个 JSON 对象，可以对给定的 upstream 配置超时或重试等选项。参见[内置代理配置参考](https://www.consul.io/docs/connect/configuration.html#built-in-proxy-options)文档，或参考 [Envoy 配置参考](https://www.consul.io/docs/connect/configuration.html#envoy-options)文档。
 
-#### [»](https://www.consul.io/docs/connect/proxies.html#dynamic-upstreams)Dynamic Upstreams <a id="dynamic-upstreams"></a>
+#### 动态 Upstream <a id="dynamic-upstreams"></a>
 
 If an application requires dynamic dependencies that are only available at runtime, it must currently [natively integrate](https://www.consul.io/docs/connect/native.html)with Connect. After natively integrating, the HTTP API or [DNS interface](https://www.consul.io/docs/agent/dns.html#connect-capable-service-lookups) can be used.
 

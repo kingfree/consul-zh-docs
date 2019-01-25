@@ -6,15 +6,15 @@ Currently Consul only supports TCP proxying between services, however HTTP and g
 
 As an interim solution, [custom Envoy configuration](https://www.consul.io/docs/connect/proxies/envoy.html#custom-configuration) can be specified in [proxy service definition](https://www.consul.io/docs/connect/proxies.html) allowing more powerful features of Envoy to be used.
 
-### Supported Versions <a id="supported-versions"></a>
+### 支持版本 <a id="supported-versions"></a>
 
 Consul's Envoy support was added in version 1.3.0. It has been tested against Envoy 1.7.1 and 1.8.0.
 
-### Getting Started <a id="getting-started"></a>
+### 入门指南 <a id="getting-started"></a>
 
 To get started with Envoy and see a working example you can follow the [Using Envoy with Connect](https://www.consul.io/docs/guides/connect-envoy.html) guide.
 
-### Limitations <a id="limitations"></a>
+### 取值限制 <a id="limitations"></a>
 
 The following list limitations of the Envoy integration as released in 1.3.0. All of these are planned to be lifted in the near future.
 
@@ -24,7 +24,7 @@ The following list limitations of the Envoy integration as released in 1.3.0. Al
 * There is currently no way to disable the public listener and have a "client only" sidecar for services that don't expose Connect-enabled service but want to consume others. This will be fixed in a near-future release.
 * Once authorized, a persistent TCP connection will not be closed if the intentions change to deny access. This is currently a limitation of how TCP proxy and network authz filter work in Envoy. All new connections will be denied though and destination services can limit exposure by closing inbound connections periodically or by a rolling restart of the destination service as an emergency measure.
 
-### [»](https://www.consul.io/docs/connect/proxies/envoy.html#bootstrap-configuration)Bootstrap Configuration <a id="bootstrap-configuration"></a>
+### 启动配置 <a id="bootstrap-configuration"></a>
 
 Envoy requires an initial bootstrap configuration that directs it to the local agent for further configuration discovery.
 
@@ -32,7 +32,7 @@ To assist in generating this, Consul 1.3.0 adds a [`consul connect envoy` comman
 
 Some Envoy configuration options like metrics and tracing sinks can only be specified via the bootstrap config currently and so a custom bootstrap must be used. In order to work with Connect it's necessary to start with the following basic template and add additional configuration as needed.
 
-```text
+```yaml
 admin:
   # access_log_path and address are required by Envoy, Consul doesn't care what
   # they are set to though and never accesses the admin API.
@@ -79,7 +79,7 @@ This configures a "cluster" pointing to the local Consul agent and sets that as 
 
 **Security Note**: The bootstrap configuration must contain the Consul ACL token authorizing the proxy to identify as the target service. As such it should be treated as a secret value and handled with care - an attacker with access to one is able to obtain Connect TLS certificates for the target service and so access anything that service is authorized to connect to.
 
-### [»](https://www.consul.io/docs/connect/proxies/envoy.html#advanced-listener-configuration)Advanced Listener Configuration <a id="advanced-listener-configuration"></a>
+### 监听器配置 <a id="advanced-listener-configuration"></a>
 
 Consul 1.3.0 includes initial Envoy support which includes automatic Layer 4 \(TCP\) proxying over mTLS, and authorization. Near future versions of Consul will bring Layer 7 features like HTTP-path-based routing, retries, tracing and more.
 
@@ -91,7 +91,7 @@ The JSON supplied may describe a protobuf `types.Any` message with `@type` set t
 
 Once parsed, it is passed to Envoy in place of the listener config that Consul would typically configure. The only modifications Consul will make to the config provided are noted below.
 
-**»Public Listener Configuration**
+**公共监听器配置**
 
 For the `proxy.config.envoy_public_listener_json`, every `FilterChain` added to the listener will have it's `TlsContext`overwritten with the Connect TLS certificates. This means there is no way to override Connect TLS settings or the requirement for all inbound clients to present valid Connect certificates.
 
@@ -99,7 +99,7 @@ Also, every `FilterChain` will have the `envoy.ext_authz` filter prepended to th
 
 To work properly with Consul Connect, the public listener should bind to the same address in the service definition so it is discoverable. It may also use the special cluster name `local_app` to forward requests to a single local instance if the proxy was configured [as a sidecar](https://www.consul.io/docs/connect/proxies.html#sidecar-proxy-fields).
 
-**»Example**
+**样例**
 
 The following example shows a public listener being configured with an http connection manager. As specified this behaves exactly like the default TCP proxy filter however it provides metrics on HTTP request volume and response codes.
 
@@ -168,7 +168,7 @@ service {
 }
 ```
 
-**Upstream Listener Configuration**
+**上游监听器配置**
 
 For the upstream listeners `proxy.upstreams[].config.envoy_listener_json`, no modification is performed. The `Clusters` served via the xDS API all have the correct client certificates and verification contexts configured so outbound traffic should be authenticated.
 
