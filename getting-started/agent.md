@@ -1,104 +1,208 @@
-# 2. 运行 Consul Agent
+# 运行Consul Agent
 
-安装完 Consul 后应该运行 agent，它可以运行在服务端\(server\)或者客户端\(client\)模式下。每个数据中心\(datacenter\)都至少有一个 server，推荐一个集群\(cluster\)至少有 3 到 5 个 server。因为在故障情况下数据丢失是不可避免的，所以**强烈**建议不要单机部署。
+在安装完Consul之后，我们需要运行Consul agent。在本教程中，你将在开发模式下运行它，开发模式是一种不安全以及不可扩展的模式，但是可以让你不需要额外的配置就能够尝试Consul的大部分功能。你还将学习到如何优雅的关闭Consul agent。
 
-其他 agent 运行在 client 模式，它是一个轻量级进程，提供服务注册、健康检查和服务器见的查询转发。集群的所有节点都应运行一个 agent。
+#### Server agent 和 Client agent
 
-关于如何启动数据中心，请见[进阶教程（一）](https://kingfree.gitbook.io/consul/jin-jie-jiao-cheng-yi-bu-shu-shu-ju-zhong-xin)。
+在生产环境下，你应当以Server或Client模式运行每个Consul agent。每个Consul数据中心必须至少有一个Server，该Server负责维护Consul的状态，这包括有关其它Consul server和Consul client的信息，可用于发现的服务以及允许哪些服务与哪些其他服务进行通信的信息。
 
-### 启动 Agent
+> 警告：我们强烈不建议使用单服务器在生产环境部署。
 
-简单起见，我们用开发模式启动 Consul agent，该模式可以快速便捷地创建好单节点 Consul 环境。请**不要**将开发模式用在生产环境上，因为它不会保存任何状态。
 
-```text
-$ consul agent -dev
-==> Starting Consul agent...
-==> Starting Consul agent RPC...
-==> Consul agent running!
-           Version: 'v0.7.0'
-         Node name: 'Armons-MacBook-Air'
-        Datacenter: 'dc1'
-            Server: true (bootstrap: false)
-       Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
-      Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
-    Gossip encrypt: false, RPC-TLS: false, TLS-Incoming: false
+为了确保即使某个Consul Server agent发生故障，Consul的状态也会保留，你应该始终在生产环境中运行3~5台Server agent。 使用不超过5个并且奇数数量的Server agent可以在性能和容错能力之间取得平衡。 你可以在Consul的体系结构文档中了解有关这些要求的更多信息。
 
-==> Log data will now stream in as it occurs:
 
-    2016/09/15 10:21:10 [INFO] raft: Initial configuration (index=1): [{Suffrage:Voter ID:127.0.0.1:8300 Address:127.0.0.1:8300}]
-    2016/09/15 10:21:10 [INFO] raft: Node at 127.0.0.1:8300 [Follower] entering Follower state (Leader: "")
-    2016/09/15 10:21:10 [INFO] serf: EventMemberJoin: Armons-MacBook-Air 127.0.0.1
-    2016/09/15 10:21:10 [INFO] serf: EventMemberJoin: Armons-MacBook-Air.dc1 127.0.0.1
-    2016/09/15 10:21:10 [INFO] consul: Adding LAN server Armons-MacBook-Air (Addr: tcp/127.0.0.1:8300) (DC: dc1)
-    2016/09/15 10:21:10 [INFO] consul: Adding WAN server Armons-MacBook-Air.dc1 (Addr: tcp/127.0.0.1:8300) (DC: dc1)
-    2016/09/15 10:21:13 [DEBUG] http: Request GET /v1/agent/services (180.708Âµs) from=127.0.0.1:52369
-    2016/09/15 10:21:13 [DEBUG] http: Request GET /v1/agent/services (15.548Âµs) from=127.0.0.1:52369
-    2016/09/15 10:21:17 [WARN] raft: Heartbeat timeout from "" reached, starting election
-    2016/09/15 10:21:17 [INFO] raft: Node at 127.0.0.1:8300 [Candidate] entering Candidate state in term 2
-    2016/09/15 10:21:17 [DEBUG] raft: Votes needed: 1
-    2016/09/15 10:21:17 [DEBUG] raft: Vote granted from 127.0.0.1:8300 in term 2. Tally: 1
-    2016/09/15 10:21:17 [INFO] raft: Election won. Tally: 1
-    2016/09/15 10:21:17 [INFO] raft: Node at 127.0.0.1:8300 [Leader] entering Leader state
-    2016/09/15 10:21:17 [INFO] consul: cluster leadership acquired
-    2016/09/15 10:21:17 [DEBUG] consul: reset tombstone GC to index 3
-    2016/09/15 10:21:17 [INFO] consul: New leader elected: Armons-MacBook-Air
-    2016/09/15 10:21:17 [INFO] consul: member 'Armons-MacBook-Air' joined, marking health alive
-    2016/09/15 10:21:17 [INFO] agent: Synced service 'consul'
-```
+除了以Server模式运行的Consul agent外，还有以Client模式运行的。 Client agent是一个轻量级的进程，用于注册服务，运行状况检查并将服务查询转发到Server agent。 Client agent必须在Consul数据中心中运行服务的每个节点上运行，因为Client agent是有关服务运行状况的真实来源。
 
-如你所见，Consul agent 启动输出了一些日志数据。你可以看到 agent 运行在 server 模式下，并成为该集群的 leader。另外，本地成员被标记为了该集群的健康成员。
+当你准备在生产环境中使用Consul的时候，你可以在我们的开发指南中找到有关Server agent和Client agent在生产环境部署的更多指南。现在，为了便于学习，让我们以开发模式在本地启动agent。
 
-### 集群成员
+> 警告：永远不要在生产环境中运行  -dev 指令。
 
-你可以通过 `consul members` 命令查看 Consul 集群的成员。现在你只能看到一个成员，下一节会介绍如何加入集群：
 
-```text
-$ consul members
-Node                Address         Status  Type    Build  Protocol  DC   Segment
-Armons-MacBook-Air  127.0.0.1:8301  alive   server  1.4.0  2         dc1  <all>
-```
+#### 启动Consul agent
+以开发模式启动Consul agent
 
-输出的是我们自己的节点，包括它的运行地址、健康状态、在集群的角色和版本信息。更多数据可以用  `-detailed` 参数获取。
+	$ consul agent -dev
 
-命令 `members` 的输出基于 [gossip 协议](https://consul.io/docs/internals/gossip.html)，它们是“结果一致”。这意味着，在此时，你从屏幕上看到的节点状态不一定是 server 节点的真实状态。如果想要更健壮的一致性视图，请使用 [HTTP API](https://consul.io/api/index.html) 来请求 Consul 服务器：
 
-```text
-$ curl localhost:8500/v1/catalog/nodes
-[
-    {
-        "ID": "bac74f08-b3c0-e37e-c644-92f394659196",
-        "Node": "Armons-MacBook-Air",
-        "Address": "127.0.0.1",
-        "Datacenter": "dc1",
-        "TaggedAddresses": {
-            "lan": "127.0.0.1",
-            "wan": "127.0.0.1"
-        },
-        "Meta": {
-            "consul-network-segment": ""
-        },
-        "CreateIndex": 7,
-        "ModifyIndex": 7
-    }
-]
-```
+	==> Starting Consul agent...
+	           Version: '1.8.1'
+	           Node ID: '7a82fb12-a621-004b-a8cd-98861b80d64c'
+	         Node name: 'C02YM00WJG5H.local' //Consul默认使用主机名作为Nodename
+	        Datacenter: 'dc1' (Segment: '<all>')
+	            Server: true (Bootstrap: false)
+	       Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: -1, gRPC: 8502, DNS: 8600)
+	      Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
+	           Encrypt: Gossip: false, TLS-Outgoing: false, TLS-Incoming: false, Auto-Encrypt-TLS: false
+	
+	==> Log data will now stream in as it occurs:
+	
+	    2020-08-07T13:43:09.554+0800 [DEBUG] agent: Using random ID as node ID: id=7a82fb12-a621-004b-a8cd-98861b80d64c
+	    2020-08-07T13:43:09.561+0800 [WARN]  agent: Node name will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.: node_name=C02YM00WJG5H.local
+	    2020-08-07T13:43:09.568+0800 [INFO]  agent.server.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:7a82fb12-a621-004b-a8cd-98861b80d64c Address:127.0.0.1:8300}]"
+	    2020-08-07T13:43:09.569+0800 [INFO]  agent.server.raft: entering follower state: follower="Node at 127.0.0.1:8300 [Follower]" leader=
+	    2020-08-07T13:43:09.570+0800 [INFO]  agent.server.serf.wan: serf: EventMemberJoin: C02YM00WJG5H.local.dc1 127.0.0.1
+	    2020-08-07T13:43:09.571+0800 [INFO]  agent.server.serf.lan: serf: EventMemberJoin: C02YM00WJG5H.local 127.0.0.1
+	    2020-08-07T13:43:09.572+0800 [INFO]  agent.server: Handled event for server in area: event=member-join server=C02YM00WJG5H.local.dc1 area=wan
+	    2020-08-07T13:43:09.572+0800 [INFO]  agent.server: Adding LAN server: server="C02YM00WJG5H.local (Addr: tcp/127.0.0.1:8300) (DC: dc1)"
+	    2020-08-07T13:43:09.575+0800 [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=tcp
+	    2020-08-07T13:43:09.575+0800 [INFO]  agent: Started DNS server: address=127.0.0.1:8600 network=udp
+	    2020-08-07T13:43:09.575+0800 [INFO]  agent: Started HTTP server: address=127.0.0.1:8500 network=tcp
+	    2020-08-07T13:43:09.576+0800 [INFO]  agent: Started gRPC server: address=127.0.0.1:8502 network=tcp
+	    2020-08-07T13:43:09.576+0800 [INFO]  agent: started state syncer
+	==> Consul agent running!
+	    2020-08-07T13:43:09.635+0800 [WARN]  agent.server.raft: heartbeat timeout reached, starting election: last-leader=
+	    2020-08-07T13:43:09.636+0800 [INFO]  agent.server.raft: entering candidate state: node="Node at 127.0.0.1:8300 [Candidate]" term=2
+	    2020-08-07T13:43:09.636+0800 [DEBUG] agent.server.raft: votes: needed=1
+	    2020-08-07T13:43:09.636+0800 [DEBUG] agent.server.raft: vote granted: from=7a82fb12-a621-004b-a8cd-98861b80d64c term=2 tally=1
+	    2020-08-07T13:43:09.636+0800 [INFO]  agent.server.raft: election won: tally=1
+	    2020-08-07T13:43:09.636+0800 [INFO]  agent.server.raft: entering leader state: leader="Node at 127.0.0.1:8300 [Leader]"
+	    2020-08-07T13:43:09.636+0800 [INFO]  agent.server: cluster leadership acquired
+	    2020-08-07T13:43:09.637+0800 [INFO]  agent.server: New leader elected: payload=C02YM00WJG5H.local
+	    2020-08-07T13:43:09.637+0800 [DEBUG] agent.server: Cannot upgrade to new ACLs: leaderMode=0 mode=0 found=true leader=127.0.0.1:8300
+	    2020-08-07T13:43:09.642+0800 [DEBUG] connect.ca.consul: consul CA provider configured: id=07:80:c8:de:f6:41:86:29:8f:9c:b8:17:d6:48:c2:d5:c5:5c:7f:0c:03:f7:cf:97:5a:a7:c1:68:aa:23:ae:81 is_primary=true
+	    2020-08-07T13:43:09.657+0800 [INFO]  agent.server.connect: initialized primary datacenter CA with provider: provider=consul
+	    2020-08-07T13:43:09.657+0800 [INFO]  agent.leader: started routine: routine="federation state anti-entropy"
+	    2020-08-07T13:43:09.657+0800 [INFO]  agent.leader: started routine: routine="federation state pruning"
+	    2020-08-07T13:43:09.657+0800 [INFO]  agent.leader: started routine: routine="CA root pruning"
+	    2020-08-07T13:43:09.657+0800 [DEBUG] agent.server: Skipping self join check for node since the cluster is too small: node=C02YM00WJG5H.local
+	    2020-08-07T13:43:09.657+0800 [INFO]  agent.server: member joined, marking health alive: member=C02YM00WJG5H.local
+	    2020-08-07T13:43:09.658+0800 [INFO]  agent.server: federation state anti-entropy synced
+	    2020-08-07T13:43:09.716+0800 [DEBUG] agent: Skipping remote check since it is managed automatically: check=serfHealth
+	    2020-08-07T13:43:09.716+0800 [INFO]  agent: Synced node info
+	    2020-08-07T13:43:09.797+0800 [DEBUG] agent: Skipping remote check since it is managed automatically: check=serfHealth
+	    2020-08-07T13:43:09.797+0800 [DEBUG] agent: Node info in sync
+	    2020-08-07T13:43:09.797+0800 [DEBUG] agent: Node info in sync
+	    2020-08-07T13:44:09.638+0800 [DEBUG] agent.server: Skipping self join check for node since the cluster is too small: node=C02YM00WJG5H.local
+	    2020-08-07T13:44:12.669+0800 [DEBUG] agent: Skipping remote check since it is managed automatically: check=serfHealth
+	    2020-08-07T13:44:12.669+0800 [DEBUG] agent: Node info in sync
+	    2020-08-07T13:45:09.575+0800 [DEBUG] agent.server.router.manager: No healthy servers during rebalance, aborting
+	    2020-08-07T13:45:09.639+0800 [DEBUG] agent.server: Skipping self join check for node since the cluster is too small: node=C02YM00WJG5H.local
+	    2020-08-07T13:45:45.883+0800 [DEBUG] agent: Skipping remote check since it is managed automatically: check=serfHealth
+	    2020-08-07T13:45:45.883+0800 [DEBUG] agent: Node info in sync
+	    2020-08-07T13:46:09.640+0800 [DEBUG] agent.server: Skipping self join check for node since the cluster is too small: node=C02YM00WJG5H.local
 
-作为 HTTP API 的补充，[DNS 接口](https://consul.io/docs/agent/dns.html)可以用于查询节点。注意，你需要保证你的 DNS 查询通过 Consul agent 默认运行在 8600 端口的 DNS 服务。稍后将详细介绍这些 DNS 项的含义。
+日志显式Consul agent已启动并且正在传输一些日志流数据。日志还显式该Consul agent正在以Server模式运行，并且被选举为Leader。此外，本地agent已被标记为数据中心的正常成员。从上面可以看出我们在后续查询服务时需要用到的端口信息：
 
-```text
-$ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
-;; QUESTION SECTION:
-;Armons-MacBook-Air.node.consul.    IN  A
+    Client Addr: [127.0.0.1] (HTTP: 8500, HTTPS: -1, gRPC: 8502, DNS: 8600)
+    Cluster Addr: 127.0.0.1 (LAN: 8301, WAN: 8302)
 
-;; ANSWER SECTION:
-Armons-MacBook-Air.node.consul. 0 IN    A   127.0.0.1
-```
+> OS X用户注意事项：Consul使用你的主机名作为默认节点名。 如果你的主机名包含句点，则对该节点的DNS查询将不适用于Consul。 为避免这种情况，请使用`-node`标志显式设置节点的名称。
 
-### 停止 Agent
+#### 查找数据中心成员
+通过在新的终端窗口中运行`consul menbers`命令，可以检查Consul数据中心的成员。 该命令的输出结果列出了数据中心中所有的agent。 稍后我们将介绍将其它Consul agent一起加入到数据中心的方法，但是目前数据中心中只有一个成员（你的计算机）。
 
-你可以直接用 `Ctrl-C` 来平滑退出，你将会看到它离开集群并关闭。
+	$ consul members
+	
+	Node                Address         Status  Type    Build  Protocol  DC  Segment
+	C02YM00WJG5H.local  127.0.0.1:8301  alive   server  1.8.1  2         dc1  <all>
 
-通过平滑退出，Consul 会通知其他节点该节点已离开\(_left_\)。如果你强行杀死 agent 进程，其他集群成员将会检测到该节点失败\(_failed_\)。成员 left 后，它的服务和检查也将会从 catalog 中移除。成员失败后，健康检查会标记为崩溃，但并不会移除 catalog。Consul 会自动尝试重连 _faild_ 节点，以免在不稳定网络环境下失效；而 _left_ 的节点将不会再被联络。
+该输出展示了你在上一个窗口启动的Consul agent, 它的地址，健康状态，它在数据中心的状态以及一些版本信息。你也可以通过`-detailed`标志来展示更多元信息。
 
-另外，如果 agent 是 server 模式，将会通过[共识协议](https://consul.io/docs/internals/consensus.html)来避免潜在的服务中断。参见[进阶教程（二）](https://kingfree.gitbook.io/consul/jin-jie-jiao-cheng-er-jin-jie-cao-zuo)了解如何添加和移除服务。
+同时你也可以在另一个窗口看到一次查询日志：
 
+	2020-08-07T13:56:57.969+0800 [DEBUG] agent.http: Request finished: method=GET url=/v1/agent/members?segment=_all from=127.0.0.1:55189 latency=265.761µs
+
+`menbers`指令是针对Consul client运行的，通过流言协议获取client的信息。client拥有的信息最终是一致的，但是在任何时间点，其对全局状态的视角都可能与Server agent上的状态不完全匹配。 要获得与全局高度一致的视图，请调用HTTP API，该请求会将请求转发到Consul Server agent。
+
+	$ curl localhost:8500/v1/catalog/nodes
+
+#
+	
+	[
+	    {
+	        "ID": "7a82fb12-a621-004b-a8cd-98861b80d64c",
+	        "Node": "C02YM00WJG5H.local",
+	        "Address": "127.0.0.1",
+	        "Datacenter": "dc1",
+	        "TaggedAddresses": {
+	            "lan": "127.0.0.1",
+	            "lan_ipv4": "127.0.0.1",
+	            "wan": "127.0.0.1",
+	            "wan_ipv4": "127.0.0.1"
+	        },
+	        "Meta": {
+	            "consul-network-segment": ""
+	        },
+	        "CreateIndex": 10,
+	        "ModifyIndex": 12
+	    }
+	]
+
+除了HTTP API之外，你还可以使用DNS接口来查找节点。 除非你启用了缓存，否则DNS接口会将你的查询请求发送到Consul Server。 要执行DNS查找，你必须指向Consul agent的DNS服务器，该服务器默认在**8600**端口上运行。 DNS参数的格式（例如Judiths-MBP.node.consul）将在后面详细介绍。
+
+	$ dig @127.0.0.1 -p 8600 Judiths-MBP.node.consul
+	
+	; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 Judiths-MBP.node.consul
+	; (1 server found)
+	;; global options: +cmd
+	;; Got answer:
+	;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 7104
+	;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 2
+	;; WARNING: recursion requested but not available
+	
+	;; OPT PSEUDOSECTION:
+	; EDNS: version: 0, flags:; udp: 4096
+	;; QUESTION SECTION:
+	;Judiths-MBP.node.consul.   IN  A
+	
+	;; ANSWER SECTION:
+	Judiths-MBP.node.consul. 0  IN  A   127.0.0.1
+	
+	;; ADDITIONAL SECTION:
+	Judiths-MBP.node.consul. 0  IN  TXT "consul-network-segment="
+	
+	;; Query time: 0 msec
+	;; SERVER: 127.0.0.1#8600(127.0.0.1)
+	;; WHEN: Mon Jul 15 19:43:58 PDT 2019
+	;; MSG SIZE  rcvd: 104
+
+#### 停止Consol agent
+可以使用`consul leave`命令停止consul agent。该指令会优雅的停止Consul agent，使其离开Consul数据中心并关闭。
+
+	$ consul leave
+	Graceful leave complete
+
+如果你切换回之前的那个带有Consul日志流输出的窗口，可以看到这些日志显示Consul agent已离开数据中心。
+
+	2020-08-07T14:15:19.445+0800 [INFO]  agent.server: server starting leave
+	    2020-08-07T14:15:19.445+0800 [INFO]  agent.server.serf.wan: serf: EventMemberLeave: C02YM00WJG5H.local.dc1 127.0.0.1
+	    2020-08-07T14:15:19.445+0800 [INFO]  agent.server: Handled event for server in area: event=member-leave server=C02YM00WJG5H.local.dc1 area=wan
+	    2020-08-07T14:15:19.445+0800 [INFO]  agent.server.router.manager: shutting down
+	    2020-08-07T14:15:22.446+0800 [INFO]  agent.server.serf.lan: serf: EventMemberLeave: C02YM00WJG5H.local 127.0.0.1
+	    2020-08-07T14:15:22.446+0800 [INFO]  agent.server: Removing LAN server: server="C02YM00WJG5H.local (Addr: tcp/127.0.0.1:8300) (DC: dc1)"
+	    2020-08-07T14:15:22.446+0800 [WARN]  agent.server: deregistering self should be done by follower: name=C02YM00WJG5H.local
+	    2020-08-07T14:15:23.665+0800 [ERROR] agent.server.autopilot: Error updating cluster health: error="error getting server raft protocol versions: No servers found"
+	    2020-08-07T14:15:25.447+0800 [INFO]  agent.server: Waiting to drain RPC traffic: drain_time=5s
+	    2020-08-07T14:15:25.666+0800 [ERROR] agent.server.autopilot: Error updating cluster health: error="error getting server raft protocol versions: No servers found"
+	    2020-08-07T14:15:27.666+0800 [ERROR] agent.server.autopilot: Error updating cluster health: error="error getting server raft protocol versions: No servers found"
+	    2020-08-07T14:15:29.666+0800 [ERROR] agent.server.autopilot: Error updating cluster health: error="error getting server raft protocol versions: No servers found"
+	    2020-08-07T14:15:29.666+0800 [ERROR] agent.server.autopilot: Error promoting servers: error="error getting server raft protocol versions: No servers found"
+	    2020-08-07T14:15:30.447+0800 [INFO]  agent: Requesting shutdown
+	    2020-08-07T14:15:30.447+0800 [INFO]  agent.server: shutting down server
+	    2020-08-07T14:15:30.447+0800 [DEBUG] agent.leader: stopping routine: routine="federation state anti-entropy"
+	    2020-08-07T14:15:30.447+0800 [DEBUG] agent.leader: stopping routine: routine="federation state pruning"
+	    2020-08-07T14:15:30.447+0800 [DEBUG] agent.leader: stopping routine: routine="CA root pruning"
+	    2020-08-07T14:15:30.447+0800 [ERROR] agent.server: error performing anti-entropy sync of federation state: error="context canceled"
+	    2020-08-07T14:15:30.447+0800 [DEBUG] agent.leader: stopped routine: routine="federation state pruning"
+	    2020-08-07T14:15:30.447+0800 [DEBUG] agent.leader: stopped routine: routine="CA root pruning"
+	    2020-08-07T14:15:30.447+0800 [DEBUG] agent.leader: stopped routine: routine="federation state anti-entropy"
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: consul server down
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: shutdown complete
+	    2020-08-07T14:15:30.448+0800 [DEBUG] agent.http: Request finished: method=PUT url=/v1/agent/leave from=127.0.0.1:59821 latency=11.002045748s
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: Stopping server: protocol=DNS address=127.0.0.1:8600 network=tcp
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: Stopping server: protocol=DNS address=127.0.0.1:8600 network=udp
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: Stopping server: protocol=HTTP address=127.0.0.1:8500 network=tcp
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: Waiting for endpoints to shut down
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: Endpoints down
+	    2020-08-07T14:15:30.448+0800 [INFO]  agent: Exit code: code=0
+
+当发出`leave`命令的时候，Consul会通知其他成员该agent离开了数据中心。 agent离开后，在同一节点上运行的本地服务以及对其的检查将从目录中删除，并且Consul不会尝试再次与该节点联系。
+
+如果强制终止agent进程则会向Consul数据中心中的其他agent指示该节点发生故障而不是正常离开。 当节点发生故障时，其运行状况将标记为“critical”，但不会从目录中删除。 Consul将自动尝试重新连接到发生故障的节点，前提是该节点由于网络原因可能暂时不可用，并且可能会恢复回来。
+
+如果agent程序正在以Server模式运行，那么优雅离开就变得很重要，这样可以避免导致潜在的可用性中断进而而影响一致性（https://www.consul.io/docs/internals/consensus.html）。 查看“添加和删除服务（https://learn.hashicorp.com/consul/day-2-operations/servers）”教程，以获取有关如何安全添加和删除Server的详细信息。
+
+#### 下一步
+
+现在，你已经在开发模式下学习了启动和停止了Consul agent，请继续下一个教程，通过Consul 服务发现注册服务，你将在其中学习Consul是如何知道某服务在数据中心中是否存在及其所在位置的。
