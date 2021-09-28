@@ -2,7 +2,7 @@
 
 安装完 Consul 后应该运行 agent，它可以运行在服务端\(server\)或者客户端\(client\)模式下。每个数据中心\(datacenter\)都至少有一个 server，推荐一个集群\(cluster\)至少有 3 到 5 个 server。因为在故障情况下数据丢失是不可避免的，所以**强烈**建议不要单机部署。
 
-其他 agent 运行在 client 模式，它是一个轻量级进程，提供服务注册、健康检查和服务器见的查询转发。集群的所有节点都应运行一个 agent。
+其他 agent 运行在 client 模式，它是一个轻量级进程，提供服务注册、健康检查和服务器间的查询转发。集群的所有节点都应运行一个 agent。
 
 关于如何启动数据中心，请见[进阶教程（一）](https://kingfree.gitbook.io/consul/jin-jie-jiao-cheng-yi-bu-shu-shu-ju-zhong-xin)。
 
